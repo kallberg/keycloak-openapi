@@ -24,6 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ReferenceOr::Item(SecurityScheme::HTTP {
             scheme: "bearer".to_string(),
             bearer_format: None,
+            description: None,
         }),
     );
 
@@ -38,8 +39,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             security_schemes,
             ..Default::default()
         }),
+        external_docs: Some(openapiv3::ExternalDocumentation {
+            description: Some("Schema source code".to_string()),
+            url: "https://github.com/keycloak/keycloak/tree/6.0.1/core/src/main/java/org/keycloak/representations".to_string(),
+            extensions: Default::default(),
+        }),
         paths: paths::paths(&document),
-        security: vec![security_requirement],
+        security: Some(vec!(security_requirement)),
         ..Default::default()
     };
 

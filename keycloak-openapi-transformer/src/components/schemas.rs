@@ -40,6 +40,7 @@ fn enum_type(raw_type: &str) -> Option<openapiv3::Type> {
             .get(START.len()..raw_type.len() - END.len())?
             .split(", ")
             .map(std::string::ToString::to_string)
+            .map(Option::Some)
             .collect();
         Some(openapiv3::Type::String(openapiv3::StringType {
             enumeration: enumerations,
@@ -56,7 +57,7 @@ fn array_type(raw_type: &str) -> Option<openapiv3::Type> {
     if raw_type.starts_with(START) && raw_type.ends_with(END) {
         let inner_type = raw_type.get(START.len()..raw_type.len() - END.len())?;
         Some(openapiv3::Type::Array(openapiv3::ArrayType {
-            items: parse_type_boxed(inner_type),
+            items: Some(parse_type_boxed(inner_type)),
             min_items: None,
             max_items: None,
             unique_items: false,
@@ -72,7 +73,7 @@ fn csv_array(raw_type: &str) -> Option<openapiv3::Type> {
     if raw_type.starts_with(START) && raw_type.ends_with(END) {
         let inner_type = raw_type.get(START.len()..raw_type.len() - END.len())?;
         Some(openapiv3::Type::Array(openapiv3::ArrayType {
-            items: parse_type_boxed(inner_type),
+            items: Some(parse_type_boxed(inner_type)),
             min_items: None,
             max_items: None,
             unique_items: false,
@@ -120,7 +121,7 @@ pub fn item_type(raw_type: &str) -> Option<openapiv3::Type> {
                 max_items: None,
                 min_items: None,
                 unique_items: false,
-                items: openapiv3::ReferenceOr::Item(Box::new(openapiv3::Schema {
+                items: Some(openapiv3::ReferenceOr::Item(Box::new(openapiv3::Schema {
                     schema_data: Default::default(),
                     schema_kind: openapiv3::SchemaKind::Type(openapiv3::Type::Object(
                         openapiv3::ObjectType {
@@ -128,7 +129,7 @@ pub fn item_type(raw_type: &str) -> Option<openapiv3::Type> {
                             ..Default::default()
                         },
                     )),
-                })),
+                }))),
             })),
             "Object" | "[Object]" => Some(openapiv3::Type::Object(Default::default())),
             "string" => Some(openapiv3::Type::String(Default::default())),
@@ -197,8 +198,8 @@ mod tests {
     use openapiv3::OpenAPI;
     use scraper::Html;
 
-    const HTML: &str = include_str!("../../../keycloak/9.0.html");
-    const JSON: &str = include_str!("../../../keycloak/9.0.json");
+    const HTML: &str = include_str!("../../../keycloak/22.0.0.html");
+    const JSON: &str = include_str!("../../../keycloak/22.0.0.json");
 
     fn parse_schema_correctly(schema: &str) {
         let openapi: OpenAPI = serde_json::from_str(JSON).expect("Could not deserialize example");

@@ -139,6 +139,8 @@ pub fn parse_path(
                     deprecated: None,
                     example: None,
                     examples: Default::default(),
+                    explode: Default::default(),
+                    extensions: Default::default(),
                 },
                 style: Default::default(),
             })

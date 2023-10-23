@@ -36,7 +36,7 @@ pub fn paths(document: &scraper::html::Html) -> openapiv3::Paths {
                 continue;
             };
             if let openapiv3::ReferenceOr::Item(path_item) =
-                paths.entry(verb_path.path()).or_insert_with(|| {
+                paths.paths.entry(verb_path.path()).or_insert_with(|| {
                     openapiv3::ReferenceOr::Item(openapiv3::PathItem {
                         parameters: parameters::parse_path(&section, &verb_path),
                         ..Default::default()
@@ -70,7 +70,7 @@ pub fn paths(document: &scraper::html::Html) -> openapiv3::Paths {
             }
         }
     }
-    paths.sort_keys();
+    paths.paths.sort_keys();
 
     paths
 }
@@ -89,7 +89,7 @@ fn verb_path_split(section: &scraper::element_ref::ElementRef<'_>) -> VerbPath {
 
 #[cfg(test)]
 mod tests {
-    const HTML: &str = include_str!("../../keycloak/9.0.html");
+    const HTML: &str = include_str!("../../keycloak/22.0.0.html");
 
     mod parameters {
         use super::super::paths;
@@ -99,7 +99,7 @@ mod tests {
 
         #[test]
         fn correctly_parses_when_there_are_no_parameters() {
-            let paths = paths(&Html::parse_document(HTML));
+            let paths = paths(&Html::parse_document(HTML)).paths;
             let path = if let Some(ReferenceOr::Item(path)) = paths.get("/") {
                 path
             } else {
@@ -110,7 +110,7 @@ mod tests {
 
         #[test]
         fn correctly_parses_when_there_are_three_parameters() {
-            let paths = paths(&Html::parse_document(HTML));
+            let paths = paths(&Html::parse_document(HTML)).paths;
             let path = if let Some(ReferenceOr::Item(path)) =
                 paths.get("/{realm}/client-scopes/{id}/protocol-mappers/protocol/{protocol}")
             {
@@ -134,7 +134,7 @@ mod tests {
 
         #[test]
         fn correctly_parse_when_there_are_repeating_ids_parameters() {
-            let paths = paths(&Html::parse_document(HTML));
+            let paths = paths(&Html::parse_document(HTML)).paths;
             let path = if let Some(ReferenceOr::Item(path)) =
                 paths.get("/{realm}/clients/{id1}/protocol-mappers/models/{id2}")
             {
@@ -158,7 +158,7 @@ mod tests {
 
         #[test]
         fn adds_descriptions_when_not_always_present() {
-            let paths = paths(&Html::parse_document(HTML));
+            let paths = paths(&Html::parse_document(HTML)).paths;
             let path_item = if let Some(ReferenceOr::Item(path)) =
                 paths.get("/{realm}/roles-by-id/{role-id}/composites")
             {
@@ -184,7 +184,7 @@ mod tests {
         use scraper::Html;
 
         fn get_path(path: &str) -> openapiv3::PathItem {
-            let paths = paths(&Html::parse_document(HTML));
+            let paths = paths(&Html::parse_document(HTML)).paths;
             if let Some(ReferenceOr::Item(path)) = paths.get(path) {
                 path.clone()
             } else {
@@ -214,7 +214,7 @@ mod tests {
         // Additionally, it couldn't be defined as sub paths can't be substituted in
         #[test]
         fn does_not_parse_the_any_path() {
-            let paths = paths(&Html::parse_document(HTML));
+            let paths = paths(&Html::parse_document(HTML)).paths;
             assert!(!paths.contains_key("/{any}"));
         }
 

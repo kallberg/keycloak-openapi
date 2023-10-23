@@ -11593,8 +11593,7 @@
     "securitySchemes": {
       "access_token": {
         "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": null
+        "scheme": "bearer"
       }
     },
     "schemas": {
