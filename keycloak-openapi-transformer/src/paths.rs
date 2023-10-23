@@ -89,7 +89,7 @@ fn verb_path_split(section: &scraper::element_ref::ElementRef<'_>) -> VerbPath {
 
 #[cfg(test)]
 mod tests {
-    const HTML: &str = include_str!("../../keycloak/22.0.0.html");
+    const HTML: &str = include_str!("../../keycloak/9.0.html");
 
     mod parameters {
         use super::super::paths;

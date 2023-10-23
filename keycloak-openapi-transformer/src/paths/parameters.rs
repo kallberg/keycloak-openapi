@@ -116,16 +116,16 @@ pub fn parse_path(
 
     if let Some(repeats) = verb_path.repeating_ids() {
         params.retain(|p| {
-                if let ReferenceOr::Item(Parameter::Path {
-                    parameter_data: ParameterData { name, .. },
-                    ..
-                }) = p
-                {
-                    name != "id"
-                } else {
-                    true
-                }
-            });
+            if let ReferenceOr::Item(Parameter::Path {
+                parameter_data: ParameterData { name, .. },
+                ..
+            }) = p
+            {
+                name != "id"
+            } else {
+                true
+            }
+        });
         params.extend((1..=repeats).map(|i| {
             ReferenceOr::Item(Parameter::Path {
                 parameter_data: ParameterData {

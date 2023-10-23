@@ -52,7 +52,7 @@ pub fn parse(section: &scraper::element_ref::ElementRef<'_>) -> openapiv3::Respo
 
 #[cfg(test)]
 mod test {
-    const HTML: &str = include_str!("../../../keycloak/22.0.0.html");
+    const HTML: &str = include_str!("../../../keycloak/9.0.html");
     use super::parse;
     use indexmap::IndexMap;
     use openapiv3::MediaType;
