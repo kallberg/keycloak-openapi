@@ -17,7 +17,7 @@ pub fn parse(section: &scraper::element_ref::ElementRef<'_>) -> openapiv3::Opera
             default: None,
             responses: [(
                 openapiv3::StatusCode::Range(2),
-                openapiv3::ReferenceOr::Item(response::parse(&section)),
+                openapiv3::ReferenceOr::Item(response::parse(section)),
             )]
             .iter()
             .cloned()

@@ -31,19 +31,19 @@ pub fn paths(document: &scraper::html::Html) -> openapiv3::Paths {
             .select(&PATH_SECTION_SELECTOR)
             .collect::<Vec<_>>();
         for section in sections.iter().rev() {
-            let verb_path = verb_path_split(&section);
+            let verb_path = verb_path_split(section);
             if verb_path.unrepresentable() {
                 continue;
             };
             if let openapiv3::ReferenceOr::Item(path_item) =
                 paths.paths.entry(verb_path.path()).or_insert_with(|| {
                     openapiv3::ReferenceOr::Item(openapiv3::PathItem {
-                        parameters: parameters::parse_path(&section, &verb_path),
+                        parameters: parameters::parse_path(section, &verb_path),
                         ..Default::default()
                     })
                 })
             {
-                let mut operation = operation::parse(&section);
+                let mut operation = operation::parse(section);
                 operation.tags = vec![tag.clone()];
                 let operation = Some(operation);
                 match verb_path.verb.as_ref() {

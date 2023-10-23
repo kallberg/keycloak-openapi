@@ -115,9 +115,7 @@ pub fn parse_path(
     let mut params = parse_path_params(section);
 
     if let Some(repeats) = verb_path.repeating_ids() {
-        params = params
-            .into_iter()
-            .filter(|p| {
+        params.retain(|p| {
                 if let ReferenceOr::Item(Parameter::Path {
                     parameter_data: ParameterData { name, .. },
                     ..
@@ -127,8 +125,7 @@ pub fn parse_path(
                 } else {
                     true
                 }
-            })
-            .collect();
+            });
         params.extend((1..=repeats).map(|i| {
             ReferenceOr::Item(Parameter::Path {
                 parameter_data: ParameterData {

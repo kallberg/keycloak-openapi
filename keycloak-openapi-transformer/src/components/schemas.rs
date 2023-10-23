@@ -95,10 +95,10 @@ fn byte_array(raw_type: &str) -> Option<openapiv3::Type> {
 }
 
 pub fn item_type(raw_type: &str) -> Option<openapiv3::Type> {
-    enum_type(&raw_type)
-        .or_else(|| byte_array(&raw_type))
-        .or_else(|| array_type(&raw_type))
-        .or_else(|| csv_array(&raw_type))
+    enum_type(raw_type)
+        .or_else(|| byte_array(raw_type))
+        .or_else(|| array_type(raw_type))
+        .or_else(|| csv_array(raw_type))
         .or_else(|| match raw_type {
             "integer(int32)" => Some(openapiv3::Type::Integer(openapiv3::IntegerType {
                 format: openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::IntegerFormat::Int32),
