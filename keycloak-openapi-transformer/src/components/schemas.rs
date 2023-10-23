@@ -1,4 +1,5 @@
 use indexmap::IndexMap;
+use openapiv3::ArrayType;
 use openapiv3::ObjectType;
 use openapiv3::Schema;
 use openapiv3::SchemaKind;
@@ -32,58 +33,71 @@ pub fn parse_schemas(
         .collect()
 }
 
-fn enum_type(raw_type: &str) -> Option<openapiv3::Type> {
-    const START: &str = "enum (";
-    const END: &str = ")";
-    if raw_type.starts_with(START) && raw_type.ends_with(END) {
-        let enumerations = raw_type
-            .get(START.len()..raw_type.len() - END.len())?
-            .split(", ")
-            .map(std::string::ToString::to_string)
-            .collect();
-        Some(openapiv3::Type::String(openapiv3::StringType {
-            enumeration: enumerations,
-            ..Default::default()
-        }))
-    } else {
-        None
-    }
+fn list_of_type(raw_type: &str) -> Option<openapiv3::Type> {
+    const LIST_PREFIX: &str = "List  of ";
+
+    let inner_type = raw_type.strip_prefix(LIST_PREFIX)?;
+
+    Some(openapiv3::Type::Array(openapiv3::ArrayType {
+        items: Some(parse_type_boxed(inner_type)),
+        min_items: None,
+        max_items: None,
+        unique_items: false,
+    }))
 }
 
-fn array_type(raw_type: &str) -> Option<openapiv3::Type> {
-    const START: &str = "< ";
-    const END: &str = " > array";
-    if raw_type.starts_with(START) && raw_type.ends_with(END) {
-        let inner_type = raw_type.get(START.len()..raw_type.len() - END.len())?;
-        Some(openapiv3::Type::Array(openapiv3::ArrayType {
-            items: parse_type_boxed(inner_type),
-            min_items: None,
-            max_items: None,
-            unique_items: false,
-        }))
-    } else {
-        None
-    }
+fn set_of_type(raw_type: &str) -> Option<openapiv3::Type> {
+    const SET_PREFIX: &str = "Set  of ";
+
+    let inner_type = raw_type.strip_prefix(SET_PREFIX)?;
+
+    Some(openapiv3::Type::Array(openapiv3::ArrayType {
+        items: Some(parse_type_boxed(inner_type)),
+        min_items: None,
+        max_items: None,
+        unique_items: true,
+    }))
 }
 
-fn csv_array(raw_type: &str) -> Option<openapiv3::Type> {
-    const START: &str = "< ";
-    const END: &str = " > array(csv)";
-    if raw_type.starts_with(START) && raw_type.ends_with(END) {
-        let inner_type = raw_type.get(START.len()..raw_type.len() - END.len())?;
-        Some(openapiv3::Type::Array(openapiv3::ArrayType {
-            items: parse_type_boxed(inner_type),
-            min_items: None,
-            max_items: None,
-            unique_items: false,
-        }))
-    } else {
-        None
-    }
+fn map_of_type(raw_type: &str) -> Option<openapiv3::Type> {
+    const MAP_PREFIX: &str = "Map  of ";
+
+    let inner_type_str = raw_type.strip_prefix(MAP_PREFIX)?;
+    let inner_type = parse_type(inner_type_str);
+
+    let map = openapiv3::Type::Object(ObjectType {
+        additional_properties: Some(openapiv3::AdditionalProperties::Schema(Box::new(
+            inner_type,
+        ))),
+        ..Default::default()
+    });
+
+    Some(map)
 }
 
-fn byte_array(raw_type: &str) -> Option<openapiv3::Type> {
-    if raw_type == "< string(byte) > array" {
+fn map_type(raw_type: &str) -> Option<openapiv3::Type> {
+    const MAP_PREFIX: &str = "Map[";
+
+    if !raw_type.starts_with(MAP_PREFIX) {
+        return None;
+    }
+
+    let inner_type_str = raw_type.strip_prefix(MAP_PREFIX)?.strip_suffix(']')?;
+
+    let inner_type = parse_type(inner_type_str);
+
+    let map = openapiv3::Type::Object(ObjectType {
+        additional_properties: Some(openapiv3::AdditionalProperties::Schema(Box::new(
+            inner_type,
+        ))),
+        ..Default::default()
+    });
+
+    Some(map)
+}
+
+fn file_type(raw_type: &str) -> Option<openapiv3::Type> {
+    if raw_type.to_lowercase().trim() == "[file]" {
         Some(openapiv3::Type::String(openapiv3::StringType {
             format: openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::StringFormat::Byte),
             ..Default::default()
@@ -94,44 +108,39 @@ fn byte_array(raw_type: &str) -> Option<openapiv3::Type> {
 }
 
 pub fn item_type(raw_type: &str) -> Option<openapiv3::Type> {
-    enum_type(&raw_type)
-        .or_else(|| byte_array(&raw_type))
-        .or_else(|| array_type(&raw_type))
-        .or_else(|| csv_array(&raw_type))
-        .or_else(|| match raw_type {
-            "integer(int32)" => Some(openapiv3::Type::Integer(openapiv3::IntegerType {
+    file_type(raw_type)
+        .or_else(|| map_of_type(raw_type))
+        .or_else(|| map_type(raw_type))
+        .or_else(|| list_of_type(raw_type))
+        .or_else(|| set_of_type(raw_type))
+        .or_else(|| match raw_type.to_lowercase().as_str() {
+            "integer" | "[integer]" => Some(openapiv3::Type::Integer(openapiv3::IntegerType {
                 format: openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::IntegerFormat::Int32),
                 ..Default::default()
             })),
-            "integer(int64)" => Some(openapiv3::Type::Integer(openapiv3::IntegerType {
+            "long" | "[long]" => Some(openapiv3::Type::Integer(openapiv3::IntegerType {
                 format: openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::IntegerFormat::Int64),
                 ..Default::default()
             })),
-            "number(float)" => Some(openapiv3::Type::Number(openapiv3::NumberType {
-                format: openapiv3::VariantOrUnknownOrEmpty::Item(openapiv3::NumberFormat::Float),
-                ..Default::default()
+            "boolean" | "[boolean]" => Some(openapiv3::Type::Boolean {}),
+            "object" | "[object]" | "<<>>" => Some(openapiv3::Type::Object(Default::default())),
+            "array" | "[array]" | "list" => Some(openapiv3::Type::Array(ArrayType {
+                items: None,
+                min_items: None,
+                max_items: None,
+                unique_items: false,
             })),
-            "boolean" => Some(openapiv3::Type::Boolean {}),
-            "Map" | "Map[<<>>]" => Some(openapiv3::Type::Object(openapiv3::ObjectType {
+            "set" | "[set]" => Some(openapiv3::Type::Array(openapiv3::ArrayType {
+                items: Default::default(),
+                min_items: None,
+                max_items: None,
+                unique_items: true,
+            })),
+            "map" | "[map]" => Some(openapiv3::Type::Object(ObjectType {
                 additional_properties: Some(openapiv3::AdditionalProperties::Any(true)),
                 ..Default::default()
             })),
-            "Stream" | "InputStream" => Some(openapiv3::Type::Array(openapiv3::ArrayType {
-                max_items: None,
-                min_items: None,
-                unique_items: false,
-                items: openapiv3::ReferenceOr::Item(Box::new(openapiv3::Schema {
-                    schema_data: Default::default(),
-                    schema_kind: openapiv3::SchemaKind::Type(openapiv3::Type::Object(
-                        openapiv3::ObjectType {
-                            additional_properties: Some(openapiv3::AdditionalProperties::Any(true)),
-                            ..Default::default()
-                        },
-                    )),
-                })),
-            })),
-            "Object" | "[Object]" => Some(openapiv3::Type::Object(Default::default())),
-            "string" => Some(openapiv3::Type::String(Default::default())),
+            "string" | "[string]" => Some(openapiv3::Type::String(Default::default())),
             _ => None,
         })
 }
