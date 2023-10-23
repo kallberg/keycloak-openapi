@@ -31,7 +31,7 @@ pub fn parse(section: &scraper::element_ref::ElementRef<'_>) -> openapiv3::Respo
         .map(|p| p.text().collect::<String>());
 
     let content = match (media_type, raw_schema.as_ref()) {
-        (None, _) | (_, "Response") => Default::default(),
+        (None, _) | (_, "<<>>") => Default::default(),
         (Some(produces), _) => [(
             produces,
             MediaType {
